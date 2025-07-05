@@ -1,0 +1,288 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# IINA Web Remote Development Workflow
+
+## Implementation Phases
+
+Follow these phases in order for systematic development. Reference the full project plan: [docs/README.md](mdc:docs/README.md)
+
+### Phase 1: Core Plugin Development ⚡
+**Priority**: Critical foundation
+- [ ] Set up IINA plugin structure with TypeScript support
+- [ ] Implement WebSocket server with connection management
+- [ ] Create basic playback control handlers (play/pause/seek)
+- [ ] Add event listeners for real-time status updates
+- [ ] Implement skip forward/backward (10s) functionality
+
+### Phase 2: Web Interface Development 🎨
+**Priority**: Core user interface
+- [ ] Create responsive HTML/CSS layout using IINA design system
+- [ ] Implement WebSocket client connection
+- [ ] Build core control components (play/pause, seek slider)
+- [ ] Add skip buttons with visual feedback
+- [ ] Implement fullscreen toggle
+
+### Phase 3: Advanced Features ✨
+**Priority**: Enhanced functionality
+- [ ] Add subtitle track enumeration and switching
+- [ ] Create modal/page for subtitle controls
+- [ ] Implement error handling and reconnection logic
+- [ ] Add media information display (title, duration, etc.)
+
+### Phase 4: Polish & Enhancement 💎
+**Priority**: User experience refinement
+- [ ] Improve UI/UX with animations and transitions
+- [ ] Add keyboard shortcuts for web interface
+- [ ] Implement volume control
+- [ ] Add playlist navigation support
+
+## Development Setup Checklist
+
+### Prerequisites
+- [ ] IINA 1.4.0+ installed on macOS
+- [ ] Node.js and npm for web interface development
+- [ ] Basic knowledge of TypeScript and WebSocket APIs
+
+### Initial Setup Commands
+```bash
+# 1. Create plugin structure
+iina-plugin create iina-web-remote
+cd iina-web-remote/plugin
+
+# 2. Install IINA plugin TypeScript definitions
+npm install --save-dev iina-plugin-definition
+
+# 3. Set up development symlink for plugin
+iina-plugin link .
+
+# 4. Set up web interface (in parent directory)
+cd ../
+mkdir web-interface && cd web-interface
+npm create vite@latest . -- --template vanilla-ts
+npm install
+
+# 5. Add Tailwind CSS with IINA design system
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+
+# 6. Start development servers
+# Terminal 1: Web interface
+npm run dev
+
+# Terminal 2: Test plugin
+open -a IINA
+# Check Window > Log Viewer for plugin messages
+```
+
+## Code Quality Standards
+
+### TypeScript Configuration
+- **Strict mode**: Enable strict TypeScript checking
+- **Type definitions**: Use IINA plugin definitions for better DX
+- **Interface definitions**: Create shared interfaces for WebSocket communication
+
+### Code Organization
+```
+iina-remote/
+├── plugin/                      # IINA Plugin (.iinaplugin folder)
+│   ├── Info.json               # Plugin metadata (required)
+│   ├── main.js                 # Main entry point (required)
+│   ├── websocket.js            # WebSocket server logic (optional split)
+│   ├── package.json            # Plugin dependencies
+│   └── tsconfig.json           # TypeScript config (ES6 target, no DOM)
+├── web-interface/               # Web Remote Interface
+│   ├── src/
+│   │   ├── main.ts             # Main application logic
+│   │   ├── websocket.ts        # WebSocket client
+│   │   ├── controls.ts         # UI control handlers
+│   │   ├── types.ts            # Shared TypeScript interfaces
+│   │   └── style.css           # Tailwind + IINA design system
+│   ├── index.html              # Main HTML file
+│   ├── package.json            # Frontend dependencies
+│   ├── tsconfig.json           # TypeScript config (DOM enabled)
+│   ├── tailwind.config.js      # Tailwind with IINA colors
+│   └── vite.config.ts          # Vite config (host: 0.0.0.0)
+└── docs/
+    └── README.md               # Project documentation
+```
+
+### Plugin Development Notes
+- **Plugin folder**: Must have `.iinaplugin` extension for IINA recognition
+- **Entry timing**: Main entry executes when player is created, before file loading
+- **Event-driven**: Use `event.on()` for runtime functionality, not direct execution
+- **Module system**: Use CommonJS (`require`/`module.exports`) for compatibility
+
+### Design System Compliance
+Always reference the IINA design system rules for:
+- **Color palette**: Use predefined IINA color classes
+- **Component classes**: Follow established `.iina-*` naming conventions
+- **Layout patterns**: Maintain consistent spacing and hierarchy
+- **Accessibility**: Ensure touch-friendly controls and proper ARIA labels
+
+## Testing Workflow
+
+### Plugin Testing
+1. **Development Testing**:
+   ```bash
+   # Start IINA with plugin linked
+   open -a IINA
+   # Check Window > Log Viewer for plugin messages
+   ```
+
+2. **WebSocket Testing**:
+   - Test connection establishment
+   - Verify command handling
+   - Check status update broadcasting
+   - Test with multiple concurrent connections
+
+3. **Error Scenarios**:
+   - Plugin behavior when no media is loaded
+   - WebSocket disconnection handling
+   - Invalid command handling
+
+### Web Interface Testing
+1. **Cross-Device Testing**:
+   - Test on iPhone/Android phones
+   - Test on tablets (iPad, Android tablets)
+   - Test on desktop browsers
+
+2. **Network Testing**:
+   - Test on same Wi-Fi network
+   - Test with slow connections
+   - Test reconnection after network interruption
+
+3. **Browser Compatibility**:
+   - Safari (iOS and macOS)
+   - Chrome (mobile and desktop)
+   - Firefox (desktop)
+   - Edge (desktop)
+
+## Development Best Practices
+
+### Plugin Development
+- **Error Handling**: Always wrap IINA API calls in try-catch blocks
+- **Logging**: Use `iina.console.log()` for debugging (NOT regular `console.log`)
+- **State Management**: Keep track of connection states and active clients
+- **Performance**: Avoid blocking operations in event handlers
+- **API Usage**: Use destructuring for cleaner code: `const { ws, core, event } = iina;`
+- **Permissions**: Only request necessary permissions in Info.json
+- **Compatibility**: Stick to ES6 features for maximum macOS version support
+
+### Web Interface Development
+- **Responsive Design**: Mobile-first approach with touch-friendly controls
+- **Real-time Updates**: Efficiently handle frequent status updates
+- **User Feedback**: Provide visual feedback for all user actions
+- **Offline Handling**: Graceful degradation when WebSocket is disconnected
+
+### Code Style Guidelines
+- **Naming**: Use descriptive variable and function names
+- **Comments**: Document complex WebSocket communication logic
+- **Formatting**: Use Prettier for consistent code formatting
+- **Linting**: Use ESLint for code quality enforcement
+
+## Debugging Strategies
+
+### Plugin Debugging
+1. **IINA Log Viewer**: Primary debugging tool for plugin issues
+2. **Console Logging**: Strategic logging for WebSocket events
+3. **Safari Web Inspector**: Advanced debugging with breakpoints
+4. **Network Inspection**: Monitor WebSocket traffic
+
+### Web Interface Debugging
+1. **Browser DevTools**: Standard web debugging workflow
+2. **WebSocket Inspector**: Monitor real-time communication
+3. **Mobile Debugging**: Remote debugging for mobile devices
+4. **Performance Profiling**: Optimize for smooth animations
+
+## Git Workflow
+
+### Branch Strategy
+- **main**: Stable, working version
+- **develop**: Integration branch for features
+- **feature/***: Individual feature development
+- **hotfix/***: Critical bug fixes
+
+### Commit Guidelines
+- **Format**: `type(scope): description`
+- **Types**: feat, fix, docs, style, refactor, test, chore
+- **Examples**:
+  - `feat(plugin): add WebSocket server implementation`
+  - `fix(ui): resolve touch target sizing on mobile`
+  - `docs(readme): update installation instructions`
+
+### Pull Request Process
+1. **Feature complete**: Ensure feature works end-to-end
+2. **Design compliance**: Verify IINA design system adherence
+3. **Testing**: Test on multiple devices and browsers
+4. **Documentation**: Update relevant documentation
+5. **Code review**: Get review from team members
+
+## Performance Monitoring
+
+### Plugin Performance
+- **Memory Usage**: Monitor for memory leaks in long-running sessions
+- **Event Handler Efficiency**: Optimize frequent event processing
+- **WebSocket Overhead**: Minimize message size and frequency
+
+### Web Interface Performance
+- **Bundle Size**: Keep JavaScript bundle minimal
+- **Render Performance**: Optimize for 60fps animations
+- **Network Efficiency**: Minimize WebSocket message overhead
+- **Battery Impact**: Optimize for mobile device battery life
+
+## Deployment Checklist
+
+### Pre-Release Testing
+- [ ] Test all core features work correctly
+- [ ] Verify design matches IINA's visual language
+- [ ] Test on multiple devices and screen sizes
+- [ ] Verify WebSocket reconnection works
+- [ ] Test error handling and edge cases
+- [ ] Performance test with long video files
+
+### Release Preparation
+- [ ] Update version numbers in package.json and Info.json
+- [ ] Create release notes with feature descriptions
+- [ ] Package plugin following IINA guidelines
+- [ ] Test installation process
+- [ ] Prepare user documentation
+
+### Post-Release
+- [ ] Monitor for user feedback and bug reports
+- [ ] Track usage analytics (if implemented)
+- [ ] Plan next iteration based on user needs
+- [ ] Maintain compatibility with IINA updates
+
+## Troubleshooting Guide
+
+### Common Plugin Issues
+- **WebSocket won't start**: Check port availability and permissions
+- **Commands not working**: Verify IINA API usage and error handling
+- **Multiple connections**: Ensure proper connection management
+
+### Common Web Interface Issues
+- **Can't connect**: Verify WebSocket URL and network connectivity
+- **Controls not responsive**: Check touch target sizes and event handlers
+- **Design inconsistencies**: Verify Tailwind classes and IINA design system
+
+### Development Environment Issues
+- **Plugin not loading**: Check symlink and IINA plugin directory
+- **TypeScript errors**: Verify type definitions and configuration
+- **Build failures**: Check Vite configuration and dependencies
+
+## Continuous Improvement
+
+### Code Review Focus Areas
+- **IINA API usage**: Ensure proper and efficient API calls
+- **WebSocket communication**: Verify message format and error handling
+- **UI/UX consistency**: Maintain IINA design language adherence
+- **Performance**: Optimize for smooth real-time interaction
+
+### Refactoring Opportunities
+- **Modular architecture**: Keep components focused and reusable
+- **Type safety**: Improve TypeScript coverage and interfaces
+- **Error handling**: Enhance user experience during failures
+- **Performance optimization**: Continuous improvement of responsiveness

@@ -1,0 +1,453 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# IINA Web Remote Technical Architecture
+
+## ✅ **CORRECTED ARCHITECTURE**
+
+**Based on the official IINA Plugin API documentation, IINA plugins CAN create WebSocket servers.** 
+
+The [official IINA WebSocket API documentation](https://docs.iina.io/interfaces/IINA.API.WebSocket.html) clearly states: "The WebSocket module provides a simple interface to create local WebSocket servers, therefore enabling the plugin to communicate with other applications."
+
+## What IINA Actually Supports
+
+### ✅ **Available IINA Plugin APIs**
+
+According to the official documentation:
+
+- **`iina.ws`**: Create WebSocket **servers** and **connections** (both server and client)
+  - `ws.createServer()` - Create local WebSocket server
+  - `ws.startServer()` - Start the WebSocket server
+  - `ws.onNewConnection()` - Handle new client connections
+  - `ws.onMessage()` - Handle incoming messages
+  - `ws.sendText()` - Send messages to clients
+- **`iina.http`**: Make HTTP **requests** (client-side only)
+- **`iina.core`**: Control player, show OSD messages
+- **`iina.mpv`**: Access mpv properties and commands
+- **`iina.event`**: Listen to IINA/mpv events
+- **`iina.utils`**: Execute shell commands, show dialogs
+- **`iina.console`**: Logging and debugging
+- **`iina.file`**: File system access
+- **`iina.overlay`**: Display content on video overlay
+- **`iina.standaloneWindow`**: Create standalone windows
+- **`iina.sidebar`**: Display content in sidebar
+
+### ❌ **NOT Available in IINA**
+
+- HTTP server creation (`http.createServer()` - does not exist)
+- TLS/WSS WebSocket servers (only `ws://` protocol supported)
+- Direct network binding beyond WebSocket servers
+
+## Recommended Architecture: Direct WebSocket Server
+
+### Simple Direct Connection
+
+```
+[Web Interface] ←→ [IINA Plugin WebSocket Server]
+                   (ws://localhost:10010)
+```
+
+**Architecture:**
+1. **IINA Plugin**: Creates WebSocket server directly using `iina.ws.createServer()`
+2. **Web Interface**: Connects as WebSocket client to plugin server
+3. **Communication**: Direct WebSocket communication, no external dependencies
+
+**Implementation:**
+```javascript
+// IINA Plugin (server)
+const { ws, core, mpv, event } = iina;
+
+ws.createServer({ port: 10010 });
+ws.onNewConnection(conn => console.log("Web client connected"));
+ws.onMessage((conn, message) => {
+  const command = JSON.parse(message.text());
+  handleCommand(command);
+});
+ws.startServer();
+
+// Web Interface (client)  
+const socket = new WebSocket('ws://localhost:10010');
+socket.send(JSON.stringify({ type: 'play' }));
+```
+
+## Project Structure (Corrected)
+
+```
+iina-remote/
+├── plugin/                     # IINA Plugin (.iinaplugin folder)
+│   ├── Info.json              # Plugin metadata
+│   ├── src/
+│   │   └── index.ts           # WebSocket server + IINA integration
+│   ├── package.json           # Plugin dependencies
+│   └── tsconfig.json          # TypeScript config (no DOM)
+├── web-interface/              # Web remote interface
+│   ├── src/
+│   │   ├── main.ts            # WebSocket client
+│   │   ├── pages/             # UI pages
+│   │   └── style.css          # Styling
+│   ├── index.html             # Web interface
+│   ├── package.json           # Frontend dependencies
+│   ├── vite.config.ts         # Vite configuration
+│   └── dist/                  # Built files
+└── docs/
+    └── README.md              # Documentation
+```
+
+## IINA Plugin WebSocket Server Implementation
+
+### Complete Server Setup
+
+```typescript
+// plugin/src/index.ts
+const { console, core, event, mpv, utils, ws } = iina;
+
+function setupWebSocket() {
+  try {
+    // Create WebSocket server on port 10010
+    ws.createServer({ port: 10010 });
+    
+    // Handle server state updates
+    ws.onStateUpdate((state, error) => {
+      console.log(`WebSocket server state: ${state}`);
+      if (state === "failed") {
+        console.log(`WebSocket server failed: ${error?.message || 'Unknown error'}`);
+        core.osd("Web Remote: Server failed to start");
+      } else if (state === "ready") {
+        console.log("WebSocket server is ready");
+        core.osd("Web Remote: Server ready on port 10010");
+      }
+    });
+    
+    // Handle new connections
+    ws.onNewConnection(conn => {
+      console.log(`New WebSocket connection: ${conn}`);
+      core.osd("Web Remote: Device connected");
+      
+      // Send current status to new connection
+      setTimeout(() => {
+        sendStatusUpdate(conn);
+      }, 100);
+    });
+    
+    // Handle connection state changes
+    ws.onConnectionStateUpdate((conn, state) => {
+      console.log(`Connection ${conn} state: ${state}`);
+      if (state === "cancelled" || state === "failed") {
+        console.log(`Connection ${conn} disconnected`);
+        core.osd("Web Remote: Device disconnected");
+      }
+    });
+    
+    // Handle incoming messages
+    ws.onMessage((conn, message) => {
+      try {
+        const command = JSON.parse(message.text());
+        console.log(`Received command from ${conn}:`, JSON.stringify(command));
+        handleCommand(command);
+        
+        // Send updated status after command
+        setTimeout(() => {
+          sendStatusUpdate(conn);
+        }, 100);
+      } catch (error) {
+        console.log(`Failed to parse message from ${conn}: ${error}`);
+      }
+    });
+    
+    // Start the server
+    ws.startServer();
+    console.log("WebSocket server started on port 10010");
+    
+  } catch (error) {
+    console.log(`Failed to setup WebSocket server: ${error}`);
+    core.osd("Web Remote: Failed to start server");
+  }
+}
+
+function handleCommand(command: any) {
+  try {
+    switch (command.type) {
+      case 'play':
+        mpv.set('pause', false);
+        core.osd("▶️ Play");
+        break;
+        
+      case 'pause':
+        mpv.set('pause', true);
+        core.osd("⏸️ Pause");
+        break;
+        
+      case 'toggle-pause':
+        const isPaused = mpv.getFlag('pause');
+        mpv.set('pause', !isPaused);
+        core.osd(isPaused ? "▶️ Play" : "⏸️ Pause");
+        break;
+        
+      case 'seek':
+        if (typeof command.position === 'number') {
+          mpv.set('time-pos', command.position);
+          core.osd(`⏩ Seek to ${Math.floor(command.position)}s`);
+        }
+        break;
+        
+      case 'skip-forward':
+        const skipAmount = command.amount || 10;
+        const currentPos = mpv.getNumber('time-pos') || 0;
+        mpv.set('time-pos', currentPos + skipAmount);
+        core.osd(`⏩ Skip +${skipAmount}s`);
+        break;
+        
+      case 'skip-backward':
+        const skipBackAmount = command.amount || 10;
+        const currentPosBack = mpv.getNumber('time-pos') || 0;
+        mpv.set('time-pos', Math.max(0, currentPosBack - skipBackAmount));
+        core.osd(`⏪ Skip -${skipBackAmount}s`);
+        break;
+        
+      case 'toggle-fullscreen':
+        mpv.set('fullscreen', !mpv.getFlag('fullscreen'));
+        core.osd("⛶ Toggle Fullscreen");
+        break;
+        
+      default:
+        console.log(`Unknown command type: ${command.type}`);
+    }
+  } catch (error) {
+    console.log(`Error handling command: ${error}`);
+  }
+}
+
+function sendStatusUpdate(conn: string) {
+  try {
+    const status = getCurrentStatus();
+    const message = {
+      type: 'status',
+      data: status
+    };
+    
+    ws.sendText(conn, JSON.stringify(message)).then(result => {
+      if (result === "no_connection") {
+        console.log(`Failed to send status to ${conn}: connection not found`);
+      }
+    }).catch(error => {
+      console.log(`Error sending status to ${conn}: ${error}`);
+    });
+  } catch (error) {
+    console.log(`Error preparing status update: ${error}`);
+  }
+}
+```
+
+## Web Interface Implementation
+
+```typescript
+// web-interface/src/main.ts
+class IINARemoteClient {
+  private ws: WebSocket | null = null;
+  private reconnectInterval: number = 5000;
+  
+  connect() {
+    try {
+      this.ws = new WebSocket('ws://localhost:10010');
+      
+      this.ws.onopen = () => {
+        console.log('Connected to IINA WebSocket server');
+        this.updateConnectionStatus(true);
+      };
+      
+      this.ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === 'status') {
+            this.updateUI(message.data);
+          }
+        } catch (error) {
+          console.error('Failed to parse message:', error);
+        }
+      };
+      
+      this.ws.onclose = () => {
+        console.log('Disconnected from IINA server');
+        this.updateConnectionStatus(false);
+        setTimeout(() => this.connect(), this.reconnectInterval);
+      };
+      
+      this.ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+    } catch (error) {
+      console.error('Failed to connect:', error);
+      setTimeout(() => this.connect(), this.reconnectInterval);
+    }
+  }
+  
+  sendCommand(type: string, data?: any) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type, ...data }));
+    }
+  }
+}
+
+// Initialize remote client
+const remote = new IINARemoteClient();
+remote.connect();
+```
+
+## Required Permissions
+
+```json
+{
+  "permissions": [
+    "network-request",  // Required for WebSocket server creation
+    "show-osd",        // For displaying status messages
+    "file-system"      // If using shell commands or file operations
+  ]
+}
+```
+
+## Development Workflow
+
+### Setup Commands
+```bash
+# 1. Set up IINA plugin
+cd plugin
+npm install --save-dev iina-plugin-definition
+npm run build
+
+# 2. Set up web interface
+cd web-interface
+npm create vite@latest . -- --template vanilla-ts
+npm install
+npm run dev
+
+# 3. Test connection
+# Start IINA with plugin loaded
+# Open web interface at http://localhost:5173
+# WebSocket connects to ws://localhost:10010
+```
+
+### WebSocket Server Features
+
+**Available on macOS 10.15 or later**
+- ✅ Local WebSocket server creation
+- ✅ Multiple client connection handling
+- ✅ Real-time bidirectional communication
+- ✅ Connection state management
+- ✅ Message broadcasting capabilities
+- ❌ TLS/WSS support (only `ws://` protocol)
+
+### Communication Protocol
+
+**Command Messages (Web → Plugin):**
+```json
+{
+  "type": "play" | "pause" | "toggle-pause" | "seek" | "skip-forward" | "skip-backward" | "toggle-fullscreen",
+  "position"?: number,  // For seek commands
+  "amount"?: number     // For skip commands
+}
+```
+
+**Status Messages (Plugin → Web):**
+```json
+{
+  "type": "status",
+  "data": {
+    "paused": boolean,
+    "timePos": number,
+    "duration": number,
+    "filename": string,
+    "title": string,
+    "hasMedia": boolean
+  }
+}
+```
+
+## Security Considerations
+
+### Network Security
+- **Local server only**: WebSocket server binds to localhost by default
+- **Port configuration**: Use non-standard port (10010) to avoid conflicts
+- **Input validation**: Validate all incoming commands in plugin
+- **Error handling**: Don't expose internal errors to clients
+
+### Plugin Permissions
+- **Minimal permissions**: Only request necessary IINA plugin permissions
+- **Sandboxing**: Leverage IINA's plugin sandboxing for security
+- **Network access**: `network-request` permission required for WebSocket server
+
+## Performance Optimization
+
+### WebSocket Efficiency
+- **Message throttling**: Limit status update frequency (max 1/second)
+- **Connection pooling**: Reuse WebSocket connections efficiently
+- **State management**: Track connection states properly
+- **Memory cleanup**: Clean up disconnected clients
+
+### IINA Integration Performance
+- **Event throttling**: Limit frequent event processing (time-pos updates)
+- **API efficiency**: Use appropriate mpv/core methods for each operation
+- **Error recovery**: Implement robust error handling and recovery
+
+## Debugging and Development
+
+### IINA Plugin Debugging
+- **Log Viewer**: Use IINA's built-in log viewer (Window > Log Viewer)
+- **Console Logging**: Use `iina.console.log()` for plugin messages
+- **WebSocket States**: Monitor server and connection state changes
+
+### Common Issues
+
+**Plugin not loading:**
+- Check Info.json syntax with JSON validator
+- Verify all permissions are declared
+- Ensure TypeScript compiles without errors
+- Check IINA Log Viewer for error messages
+
+**WebSocket server failed:**
+- Verify port 10010 is not in use by another application
+- Check macOS version (requires 10.15+)
+- Ensure `network-request` permission is granted
+- Test with simple WebSocket client first
+
+**Commands not working:**
+- Check IINA Log Viewer for command parsing errors
+- Verify JSON command format matches expected structure
+- Ensure media is loaded in IINA before sending commands
+- Test mpv commands directly in IINA console
+
+## Alternative Implementations
+
+### External Server Bridge (Fallback)
+
+If the direct WebSocket server approach doesn't work in certain environments:
+
+```
+[Web Interface] ←→ [External Node.js Server] ←→ [IINA Plugin Client]
+                   (WebSocket Server)            (WebSocket Client)
+```
+
+This approach uses an external Node.js server and the IINA plugin connects as a client, but it's more complex and requires additional setup.
+
+### File-Based Communication (Simplest)
+
+For environments where WebSocket servers are problematic:
+
+```
+[Web Interface] ←→ [Shared JSON File] ←→ [IINA Plugin]
+                   (File polling)         (File watching)
+```
+
+This approach uses file system communication but has higher latency and is less efficient.
+
+## Conclusion
+
+The **direct WebSocket server approach** is the recommended implementation as it:
+- ✅ Uses official IINA APIs as documented
+- ✅ Provides real-time communication
+- ✅ Requires no external dependencies
+- ✅ Offers the best performance and user experience
+- ✅ Maintains simplicity in architecture
+
+The IINA WebSocket API is well-documented and supported, making this the ideal solution for the IINA Web Remote project.

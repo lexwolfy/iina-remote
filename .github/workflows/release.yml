@@ -1,0 +1,202 @@
+name: Build and Release Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main  # Deploy web interface on main branch pushes
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.2.3)'
+        required: true
+        type: string
+      deploy_web:
+        description: 'Deploy web interface to GitHub Pages'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  build-web-interface:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || github.event.inputs.deploy_web == 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+          
+      - name: Install web interface dependencies
+        run: |
+          cd web
+          npm ci
+          
+      - name: Build web interface
+        run: |
+          cd web
+          npm run build
+          
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./web/dist
+          cname: # Add custom domain if you have one
+
+  build-and-release-plugin:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: plugin/package-lock.json
+          
+      - name: Install plugin dependencies
+        run: |
+          cd plugin
+          npm ci
+          
+      - name: Build plugin
+        run: |
+          cd plugin
+          npm run build
+          
+      - name: Prepare release version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+          
+      - name: Update plugin version
+        run: |
+          cd plugin/dist
+          # Update version in Info.json and increment ghVersion
+          jq --arg version "${{ steps.version.outputs.version }}" \
+             --argjson ghVersion $(date +%s) \
+             '.version = $version | .ghVersion = $ghVersion' \
+             Info.json > Info.json.tmp && mv Info.json.tmp Info.json
+          
+      - name: Create release package
+        run: |
+          cd plugin
+          npm run release
+          
+      - name: Checkout distribution repository
+        uses: actions/checkout@v4
+        with:
+          repository: lexwolfy/iina-remote-plugin
+          token: ${{ secrets.DISTRIBUTION_REPO_TOKEN }}
+          path: dist-repo
+          
+      - name: Update distribution repository
+        run: |
+          # Clear existing files (except .git and README.md)
+          cd dist-repo
+          find . -type f ! -path './.git/*' ! -name 'README.md' ! -name '.gitignore' -delete
+          
+          # Copy built plugin files
+          cp -r ../plugin/dist/* .
+          
+          # Create/update README for users
+          cat > README.md << 'EOF'
+          # IINA Web Remote Plugin
+          
+          A web-based remote control for IINA video player.
+          
+          ## Installation
+          
+          ### Method 1: GitHub URL (Recommended - Auto-update)
+          1. Open IINA
+          2. Go to Preferences > Plugins
+          3. Click "+" and enter: `lexwolfy/iina-remote-plugin`
+          
+          ### Method 2: Download Release
+          1. Download the latest `.iinaplgz` file from [Releases](https://github.com/lexwolfy/iina-remote/releases)
+          2. Double-click to install in IINA
+          
+          ## Usage
+          
+          After installation:
+          1. Open IINA and load a video
+          2. The plugin will start a WebSocket server on port 10010
+          3. Visit the web interface at **https://lexwolfy.github.io/iina-remote** from any device
+          4. Control IINA remotely from your phone, tablet, or another computer
+          
+          ## Features
+          
+          - Play/pause control
+          - Seek and skip functionality  
+          - Real-time status updates
+          - Mobile-optimized interface
+          - Subtitle track switching
+          
+          ## Web Interface
+          
+          Access the remote control at: **https://lexwolfy.github.io/iina-remote**
+          
+          ## Source Code
+          
+          Development happens at: https://github.com/lexwolfy/iina-remote
+          
+          ## Support
+          
+          Report issues at: https://github.com/lexwolfy/iina-remote/issues
+          EOF
+          
+      - name: Commit and push to distribution repository
+        run: |
+          cd dist-repo
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "Release version ${{ steps.version.outputs.version }}" || exit 0
+          git push
+          
+      - name: Create release in development repository
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name || format('v{0}', steps.version.outputs.version) }}
+          name: Release ${{ steps.version.outputs.version }}
+          body: |
+            ## IINA Web Remote v${{ steps.version.outputs.version }}
+            
+            ### Installation Options
+            
+            **Recommended (Auto-update):**
+            1. In IINA: Preferences > Plugins > "+" 
+            2. Enter: `lexwolfy/iina-remote-plugin`
+            
+            **Manual Install:**
+            1. Download `iina-web-remote.iinaplgz` below
+            2. Double-click to install
+            
+            ### Web Interface
+            Access the remote control at: **https://lexwolfy.github.io/iina-remote**
+            
+            ### What's New
+            - Check commit history for changes in this release
+            
+          files: |
+            plugin/iina-web-remote.iinaplgz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

@@ -1,0 +1,199 @@
+---
+description: Generate commit messages
+alwaysApply: false
+---
+# Commit Message Standards
+
+## Format Requirements
+
+All commit messages MUST follow this format:
+```
+<gitmoji> <type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+## Conventional Commits Types
+
+### Primary Types (Required)
+- **feat**: ✨ `:sparkles:` - A new feature
+- **fix**: 🐛 `:bug:` - A bug fix
+- **docs**: 📝 `:memo:` - Documentation only changes
+- **style**: 💄 `:lipstick:` - Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+- **refactor**: ♻️ `:recycle:` - A code change that neither fixes a bug nor adds a feature
+- **perf**: ⚡️ `:zap:` - A code change that improves performance
+- **test**: ✅ `:white_check_mark:` - Adding missing tests or correcting existing tests
+- **build**: 📦️ `:package:` - Changes that affect the build system or external dependencies
+- **ci**: 👷 `:construction_worker:` - Changes to CI configuration files and scripts
+- **chore**: 🔧 `:wrench:` - Other changes that don't modify src or test files
+- **revert**: ⏪️ `:rewind:` - Reverts a previous commit
+
+### Breaking Changes
+- Add `!` after the type/scope to indicate breaking changes
+- Use 💥 `:boom:` gitmoji for breaking changes
+- Example: `💥 feat!: send an email to the customer when a product is shipped`
+
+## Gitmoji Reference
+
+### Common Development Gitmojis
+- 🎨 `:art:` - Improve structure/format of code
+- 🔥 `:fire:` - Remove code or files
+- 🚑️ `:ambulance:` - Critical hotfix
+- 🚀 `:rocket:` - Deploy stuff
+- 🎉 `:tada:` - Begin a project
+- 🔒️ `:lock:` - Fix security issues
+- 🔖 `:bookmark:` - Release/Version tags
+- 🚨 `:rotating_light:` - Fix compiler/linter warnings
+- 🚧 `:construction:` - Work in progress
+- 💚 `:green_heart:` - Fix CI Build
+- ⬆️ `:arrow_up:` - Upgrade dependencies
+- ⬇️ `:arrow_down:` - Downgrade dependencies
+- 📌 `:pushpin:` - Pin dependencies to specific versions
+- ➕ `:heavy_plus_sign:` - Add a dependency
+- ➖ `:heavy_minus_sign:` - Remove a dependency
+- 🔨 `:hammer:` - Add or update development scripts
+- 🌐 `:globe_with_meridians:` - Internationalization and localization
+- ✏️ `:pencil2:` - Fix typos
+- 🔀 `:twisted_rightwards_arrows:` - Merge branches
+- 🚚 `:truck:` - Move or rename resources
+- 📄 `:page_facing_up:` - Add or update license
+- 🍱 `:bento:` - Add or update assets
+- ♿️ `:wheelchair:` - Improve accessibility
+- 💡 `:bulb:` - Add or update comments in source code
+- 🗃️ `:card_file_box:` - Perform database related changes
+- 🔊 `:loud_sound:` - Add or update logs
+- 🔇 `:mute:` - Remove logs
+- 🙈 `:see_no_evil:` - Add or update a .gitignore file
+- 🏷️ `:label:` - Add or update types
+- 🌱 `:seedling:` - Add or update seed files
+- 🚩 `:triangular_flag_on_post:` - Add, update, or remove feature flags
+- 🥅 `:goal_net:` - Catch errors
+- 💫 `:dizzy:` - Add or update animations and transitions
+- 🗑️ `:wastebasket:` - Deprecate code that needs to be cleaned up
+- 🧐 `:monocle_face:` - Data exploration/inspection
+- ⚰️ `:coffin:` - Remove dead code
+- 🧪 `:test_tube:` - Add a failing test
+- 🧑‍💻 `:technologist:` - Improve developer experience
+
+## Example Commit Messages
+
+### Feature Addition
+```
+✨ feat(plugin): add WebSocket server implementation
+
+Implement WebSocket server using IINA's ws API to enable
+real-time communication between plugin and web interface.
+
+- Add connection management for multiple clients
+- Implement command handling for playback controls
+- Add status broadcasting to connected clients
+
+Closes #123
+```
+
+### Bug Fix
+```
+🐛 fix(ui): resolve touch target sizing on mobile devices
+
+Touch targets were too small on mobile devices, causing
+usability issues. Increased minimum touch target size to
+44px following accessibility guidelines.
+```
+
+### Documentation
+```
+📝 docs: update installation instructions
+
+Add detailed setup steps for IINA plugin development
+including TypeScript configuration and testing workflow.
+```
+
+### Breaking Change
+```
+💥 feat(api)!: change WebSocket message format
+
+BREAKING CHANGE: WebSocket messages now use a different
+structure. Update your client code to use the new format.
+
+Before: { "command": "play" }
+After: { "type": "command", "action": "play" }
+```
+
+### Chore/Maintenance
+```
+🔧 chore: update dependencies to latest versions
+
+- Update TypeScript to 5.3.0
+- Update Vite to 5.0.0
+- Update Tailwind CSS to 3.4.0
+```
+
+### Performance Improvement
+```
+⚡️ perf(websocket): optimize message broadcasting
+
+Reduce CPU usage by 30% by implementing message batching
+and connection pooling for WebSocket communications.
+```
+
+## Scope Guidelines
+
+### Recommended Scopes for This Project
+- **plugin**: IINA plugin related changes
+- **web**: Web interface related changes
+- **ui**: User interface components
+- **api**: API or communication protocol changes
+- **websocket**: WebSocket communication specific changes
+- **deps**: Dependency management
+- **config**: Configuration files
+- **build**: Build system changes
+- **docs**: Documentation changes
+
+## Commit Message Rules
+
+1. **MUST** start with appropriate gitmoji
+2. **MUST** use conventional commit type
+3. **MUST** have a clear, concise description (max 72 characters for first line)
+4. **SHOULD** include scope when applicable
+5. **SHOULD** include body for complex changes
+6. **MUST** include footer for breaking changes
+7. **MUST** use present tense ("add feature" not "added feature")
+8. **MUST** use imperative mood ("move cursor to..." not "moves cursor to...")
+9. **SHOULD NOT** end description with a period
+10. **MUST** separate subject from body with a blank line
+
+## Changelog Generation
+
+These commit messages will be used to automatically generate changelogs with:
+- **feat**: New features section
+- **fix**: Bug fixes section
+- **perf**: Performance improvements section
+- **BREAKING CHANGE**: Breaking changes section (major version bump)
+- **docs**: Documentation updates section
+- **chore/build/ci**: Maintenance section
+
+## Tools Integration
+
+Consider using these tools to enforce standards:
+- **commitizen**: Interactive commit message creation
+- **commitlint**: Lint commit messages
+- **conventional-changelog**: Generate changelogs from commits
+- **semantic-release**: Automated versioning and releasing
+
+## Bad Examples (Don't Do This)
+
+❌ `update stuff`
+❌ `fix bug`
+❌ `WIP`
+❌ `feat: add new feature.`
+❌ `Fixed the WebSocket connection issue`
+
+## Good Examples (Do This)
+
+✅ `✨ feat(plugin): add WebSocket server implementation`
+✅ `🐛 fix(ui): resolve touch target sizing on mobile`
+✅ `📝 docs: update installation instructions`
+✅ `🔧 chore(deps): update TypeScript to 5.3.0`
+✅ `⚡️ perf(websocket): optimize message broadcasting`

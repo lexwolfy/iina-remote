@@ -1,0 +1,197 @@
+---
+description: 
+globs: web/**
+alwaysApply: false
+---
+# IINA Web Remote Design System
+
+## Design Philosophy
+The web remote interface must mirror IINA's elegant native design to provide a familiar and intuitive user experience. All UI components should feel like a natural extension of IINA itself.
+
+## Plugin Architecture Context
+**Important**: The web interface is separate from the IINA plugin:
+- **Plugin**: Runs in IINA's JavaScriptCore environment (no DOM, no browser APIs)
+- **Web Interface**: Standard web environment with full browser APIs
+- **Communication**: WebSocket connection between plugin and web interface
+- **Design Goal**: Web interface should visually match IINA's native controls
+
+## Visual Design Principles
+
+### Color Palette (Tailwind Classes)
+- **Background**: `bg-iina-bg` (#1a1a1a) - Dark background matching IINA
+- **Surfaces**: `bg-iina-surface` (#2d2d2d) - Control bar backgrounds
+- **Surface Hover**: `bg-iina-surface-light` (#3a3a3a) - Interactive states
+- **Primary Accent**: `bg-iina-primary` (#007AFF) - iOS blue for primary actions
+- **Secondary Accent**: `bg-iina-secondary` (#5856D6) - Purple for secondary actions
+- **Text Primary**: `text-iina-text` (#ffffff) - Main text color
+- **Text Muted**: `text-iina-text-muted` (#a0a0a0) - Timestamps and secondary info
+
+### Component Classes
+Use these predefined component classes for consistency:
+
+- **Control Bar Container**: `.iina-control-bar` - Semi-transparent with backdrop blur
+- **Standard Button**: `.iina-button` - Secondary action buttons
+- **Primary Button**: `.iina-button-primary` - Main play/pause button
+- **Progress Slider**: `.iina-slider` - Thin slider with circular thumb
+- **Timestamps**: `.iina-timestamp` - Monospace font for time display
+
+## Layout Structure
+
+### Mobile-First Control Hierarchy
+1. **Primary Action**: Extra large play/pause button (w-20 h-20 mobile, w-16 h-16 desktop) - center focus
+2. **Skip Controls**: Large buttons (w-14 h-14 mobile, w-12 h-12 desktop) - flanking primary action
+3. **Progress Bar**: Full-width slider with larger thumb (h-3 mobile, h-2 desktop) and responsive timestamps
+4. **Secondary Controls**: Touch-friendly buttons (min-h-[44px] mobile) - fullscreen, subtitles, settings
+
+### Responsive Spacing Guidelines
+- **Mobile Control gaps**: `gap-6` for primary controls, `gap-3` for secondary
+- **Desktop Control gaps**: `gap-4` for primary controls, `gap-4` for secondary  
+- **Section spacing**: `mb-4 sm:mb-6` between cards, responsive padding
+- **Container padding**: `p-4 sm:p-6` for adaptive layout
+- **Max width**: `max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-4xl mx-auto` for progressive enhancement
+
+## Button Design Standards
+
+### Primary Play/Pause Button (Mobile-First)
+```html
+<button class="iina-button-primary w-20 h-20 sm:w-16 sm:h-16" title="Play/Pause">
+  <svg class="w-10 h-10 sm:w-8 sm:h-8"><!-- Icon --></svg>
+</button>
+```
+
+### Skip Controls (Mobile-First)
+```html
+<button class="iina-button w-14 h-14 sm:w-12 sm:h-12" title="Skip back 10s">
+  <svg class="w-7 h-7 sm:w-6 sm:h-6"><!-- Icon --></svg>
+</button>
+```
+
+### Secondary Controls (Mobile-First)
+```html
+<button class="iina-button py-4 sm:py-3 flex items-center justify-center gap-2 text-sm sm:text-base" title="Function">
+  <svg class="w-5 h-5"><!-- Icon --></svg>
+  <span class="hidden xs:inline">Label</span>
+</button>
+```
+
+## Progress Bar Implementation (Mobile-First)
+```html
+<div class="space-y-3">
+  <input type="range" class="iina-slider h-3 sm:h-2" min="0" max="100" value="45">
+  <div class="flex justify-between items-center px-1">
+    <span class="iina-timestamp text-xs sm:text-sm">00:42</span>
+    <span class="iina-timestamp text-xs sm:text-sm">00:56</span>
+  </div>
+</div>
+```
+
+## Responsive Design Rules
+
+### Mobile-First Philosophy
+**Primary Design Target**: iPhone/Android phones in portrait orientation
+- All controls designed for thumb navigation and one-handed use
+- Minimum 44px touch targets (iOS HIG standard) enforced via CSS
+- Larger controls on mobile, scaling down for desktop
+- Touch-optimized interactions with `touch-manipulation` applied globally
+
+### Breakpoint Strategy
+- **xs (475px+)**: Show abbreviated text labels, slightly refined spacing
+- **sm (640px+)**: Tablet portrait, show full text labels, refined proportions  
+- **md (768px+)**: Tablet landscape, two-column layouts where beneficial
+- **lg (1024px+)**: Desktop, maintain mobile-optimized control sizes
+
+### Mobile-First Control Sizing
+- **Mobile Primary Button**: 80px × 80px (play/pause)
+- **Mobile Secondary**: 56px × 56px (skip controls)
+- **Mobile Tertiary**: 44px minimum height (secondary actions)
+- **Desktop scales down**: 64px, 48px, 44px respectively
+
+### Touch Target Guidelines
+- All interactive elements have `min-h-[44px] min-w-[44px]` enforced via CSS
+- Slider thumbs are larger on mobile (24px) vs desktop (20px)
+- Button text hidden on smallest screens, shown with icons on xs+ breakpoint
+- Generous padding and margins for comfortable finger navigation
+
+## Icon Guidelines
+
+### Icon Sizing
+- **Primary button icons**: `w-8 h-8`
+- **Skip control icons**: `w-6 h-6`  
+- **Secondary control icons**: `w-5 h-5`
+- **Header/brand icons**: `w-5 h-5`
+
+### Icon Style
+- Use simple, recognizable symbols matching IINA's iconography
+- Prefer SVG icons for crisp rendering at all sizes
+- Maintain consistent stroke width and style
+
+## Animation Standards
+
+### Transitions
+- **Button interactions**: `transition-all duration-200`
+- **Hover effects**: Smooth color transitions
+- **State changes**: Subtle feedback without distraction
+
+### Hover States
+- Buttons should lighten on hover (`hover:bg-iina-surface-light`)
+- Primary button should darken slightly (`hover:bg-blue-600`)
+- Include visual feedback for all interactive elements
+
+## Typography Rules
+
+### Font Hierarchy
+- **Headers**: `text-lg font-medium` for main titles
+- **Media info**: `text-iina-text-muted` for file names
+- **Timestamps**: `text-sm font-mono` for time display
+- **Button text**: Minimal text, prefer icons
+
+### Text Alignment
+- **Headers**: Center-aligned (`text-center`)
+- **Timestamps**: Space-between layout (`flex justify-between`)
+- **Button labels**: Center-aligned within buttons
+
+## Accessibility Requirements
+
+### Touch Targets
+- Minimum 44px (w-11 h-11) for all interactive elements
+- Larger primary actions (64px / w-16 h-16)
+- Adequate spacing between adjacent controls
+
+### Keyboard Navigation
+- All controls must be keyboard accessible
+- Visible focus indicators required
+- Logical tab order following visual hierarchy
+
+### Screen Reader Support
+- Meaningful `title` attributes for all buttons
+- Proper ARIA labels where needed
+- Semantic HTML structure
+
+## Development Guidelines
+
+### Class Naming
+- Use IINA-prefixed classes for custom components
+- Follow Tailwind utility-first approach
+- Maintain consistency with established naming patterns
+
+### Component Structure
+- Keep components focused and single-purpose
+- Use semantic HTML elements
+- Maintain clean separation between structure and styling
+
+### Performance Considerations
+- Optimize for mobile devices
+- Minimize bundle size with utility-first CSS
+- Use efficient WebSocket communication patterns
+
+## Quality Checklist
+
+Before implementing any UI component, verify:
+- [ ] Matches IINA's visual design language
+- [ ] Uses established color palette and component classes
+- [ ] Follows responsive design principles
+- [ ] Meets accessibility requirements
+- [ ] Includes proper hover and focus states
+- [ ] Has appropriate touch targets for mobile
+- [ ] Uses semantic HTML structure
+- [ ] Includes meaningful titles and labels

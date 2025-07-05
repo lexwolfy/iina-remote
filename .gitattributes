@@ -1,0 +1,25 @@
+# Plugin build artifacts
+plugin/dist/** linguist-generated
+plugin/release/** linguist-generated
+plugin/*.iinaplugin/** linguist-generated
+plugin/*.iinaplgz binary
+
+# Web interface build artifacts  
+web/dist/** linguist-generated
+
+# Development files - exclude from GitHub archive downloads
+docs/ export-ignore
+plugin/src/ export-ignore
+plugin/tsconfig.json export-ignore
+plugin/package*.json export-ignore
+plugin/BUILD.md export-ignore
+plugin/README.md export-ignore
+web/src/ export-ignore
+web/tsconfig.json export-ignore
+web/package*.json export-ignore
+web/vite.config.ts export-ignore
+web/tailwind.config.js export-ignore
+web/postcss.config.js export-ignore
+.github/ export-ignore
+.gitignore export-ignore
+.gitattributes export-ignore 
