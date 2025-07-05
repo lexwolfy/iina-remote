@@ -5,7 +5,12 @@ export class Router {
   private currentPath: string = ''
 
   constructor() {
-    // Listen for browser navigation events
+    // Listen for hash changes (better for GitHub Pages)
+    window.addEventListener('hashchange', () => {
+      this.handleRoute()
+    })
+    
+    // Also listen for popstate for back/forward navigation
     window.addEventListener('popstate', () => {
       this.handleRoute()
     })
@@ -19,8 +24,13 @@ export class Router {
     if (this.currentPath === path) return
     
     this.currentPath = path
-    window.history.pushState({}, '', path)
-    this.handleRoute()
+    
+    // Use hash-based routing for GitHub Pages compatibility
+    if (path === '/') {
+      window.location.hash = ''
+    } else {
+      window.location.hash = path
+    }
   }
 
   start(): void {
@@ -28,19 +38,59 @@ export class Router {
   }
 
   private handleRoute(): void {
-    const path = window.location.pathname
+    // Get path from hash or pathname
+    let path = window.location.hash.slice(1) || window.location.pathname
+    
+    // Handle GitHub Pages subdirectory
+    if (path.startsWith('/iina-remote')) {
+      path = path.replace('/iina-remote', '')
+    }
+    
+    // Default to root if empty
+    if (!path || path === '/') {
+      path = '/'
+    }
+    
     this.currentPath = path
     
     const handler = this.routes.get(path)
     if (handler) {
       handler()
     } else {
-      // Default to home route if no match found
-      const homeHandler = this.routes.get('/')
-      if (homeHandler) {
-        homeHandler()
+      // Try to find a matching route
+      const matchedRoute = this.findMatchingRoute(path)
+      if (matchedRoute) {
+        matchedRoute()
+      } else {
+        // Default to discovery page
+        const discoveryHandler = this.routes.get('/discovery')
+        if (discoveryHandler) {
+          discoveryHandler()
+        }
       }
     }
+  }
+
+  private findMatchingRoute(path: string): RouteHandler | null {
+    // First try exact match
+    if (this.routes.has(path)) {
+      return this.routes.get(path)!
+    }
+    
+    // Try common variations
+    const variations = [
+      path.endsWith('/') ? path.slice(0, -1) : path + '/',
+      path.startsWith('/') ? path : '/' + path,
+      path.startsWith('/') ? path.slice(1) : path
+    ]
+    
+    for (const variation of variations) {
+      if (this.routes.has(variation)) {
+        return this.routes.get(variation)!
+      }
+    }
+    
+    return null
   }
 
   getCurrentPath(): string {
