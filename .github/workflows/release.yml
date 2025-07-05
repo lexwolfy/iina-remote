@@ -4,12 +4,11 @@ on:
   push:
     tags:
       - 'v*'
-    branches:
-      - main  # Deploy web interface on main branch pushes
+      - 'v*-beta*'  # Support beta releases
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version number (e.g., 1.2.3)'
+        description: 'Version number (e.g., 1.2.3 or 1.2.3-beta.1)'
         required: true
         type: string
       deploy_web:
@@ -17,11 +16,16 @@ on:
         required: false
         type: boolean
         default: true
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build-web-interface:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || github.event.inputs.deploy_web == 'true'
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.deploy_web == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -81,11 +85,19 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
+            IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
           else
             VERSION="${GITHUB_REF#refs/tags/v}"
+            # Check if this is a beta/pre-release version
+            if [[ "$VERSION" == *"beta"* ]] || [[ "$VERSION" == *"alpha"* ]] || [[ "$VERSION" == *"rc"* ]]; then
+              IS_PRERELEASE="true"
+            else
+              IS_PRERELEASE="false"
+            fi
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Building version: $VERSION"
+          echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION (prerelease: $IS_PRERELEASE)"
           
       - name: Update plugin version
         run: |
@@ -148,7 +160,8 @@ jobs:
           - Seek and skip functionality  
           - Real-time status updates
           - Mobile-optimized interface
-          - Subtitle track switching
+          - Network discovery system
+          - Mobile-first responsive design
           
           ## Web Interface
           
@@ -172,11 +185,27 @@ jobs:
           git commit -m "Release version ${{ steps.version.outputs.version }}" || exit 0
           git push
           
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Generate changelog from git commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s" $LAST_TAG..HEAD | head -20)
+          else
+            CHANGELOG="- Initial release"
+          fi
+          
+          # Escape newlines for GitHub Actions
+          CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
+          echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
+          
       - name: Create release in development repository
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name || format('v{0}', steps.version.outputs.version) }}
           name: Release ${{ steps.version.outputs.version }}
+          prerelease: ${{ steps.version.outputs.is_prerelease == 'true' }}
           body: |
             ## IINA Web Remote v${{ steps.version.outputs.version }}
             
@@ -194,7 +223,12 @@ jobs:
             Access the remote control at: **https://lexwolfy.github.io/iina-remote**
             
             ### What's New
-            - Check commit history for changes in this release
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ### Requirements
+            - IINA 1.4.0 or later
+            - macOS 10.15 or later
+            - Local network access for remote control
             
           files: |
             plugin/iina-web-remote.iinaplgz
