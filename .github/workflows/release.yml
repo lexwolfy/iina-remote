@@ -23,7 +23,7 @@ on:
         default: false
 
 permissions:
-  contents: read
+  contents: write  # Required for creating releases
   pages: write
   id-token: write
 
@@ -80,6 +80,9 @@ jobs:
   deploy-plugin:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write  # Required for creating releases
+      packages: write  # Required for package operations
     steps:
       - name: Checkout source repository
         uses: actions/checkout@v4
