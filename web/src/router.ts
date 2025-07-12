@@ -41,24 +41,30 @@ export class Router {
     // Get path from hash or pathname
     let path = window.location.hash.slice(1) || window.location.pathname
     
+    // Split path and query parameters
+    const [pathOnly, queryString] = path.split('?')
+    
     // Handle GitHub Pages subdirectory
-    if (path.startsWith('/iina-remote')) {
-      path = path.replace('/iina-remote', '')
+    if (pathOnly.startsWith('/iina-remote')) {
+      path = pathOnly.replace('/iina-remote', '') + (queryString ? '?' + queryString : '')
     }
     
     // Default to root if empty
-    if (!path || path === '/') {
-      path = '/'
+    if (!pathOnly || pathOnly === '/') {
+      path = '/' + (queryString ? '?' + queryString : '')
     }
     
     this.currentPath = path
     
-    const handler = this.routes.get(path)
+    // Extract just the path part for route matching
+    const [routePath] = path.split('?')
+    
+    const handler = this.routes.get(routePath)
     if (handler) {
       handler()
     } else {
       // Try to find a matching route
-      const matchedRoute = this.findMatchingRoute(path)
+      const matchedRoute = this.findMatchingRoute(routePath)
       if (matchedRoute) {
         matchedRoute()
       } else {

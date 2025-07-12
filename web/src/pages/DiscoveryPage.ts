@@ -8,7 +8,6 @@ interface IINAServer {
 
 export class DiscoveryPage {
   private servers: IINAServer[] = []
-  private isScanning = false
 
   render(): void {
     const app = document.getElementById('app')
@@ -17,161 +16,126 @@ export class DiscoveryPage {
     app.innerHTML = this.getHTML()
     this.attachEventListeners()
     this.loadSavedServers()
-    this.detectNetworkRange()
+    this.checkUrlParameters()
   }
 
   private getHTML(): string {
     return `
       <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 sm:p-6">
-        <div class="max-w-sm mx-auto sm:max-w-md md:max-w-2xl lg:max-w-4xl">
+        <div class="max-w-sm mx-auto">
           <div class="iina-card mb-8">
             <h1 class="text-3xl font-light text-center mb-2">🎬 IINA Web Remote</h1>
             <p class="text-center text-iina-text-muted mb-6">Discover and connect to IINA servers on your network</p>
             
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <!-- Manual Connection -->
-              <div class="iina-card">
-                <h2 class="text-lg sm:text-xl font-semibold mb-4 flex items-center gap-2">
-                  <span>🔗</span> Manual Connection
-                </h2>
-                <div class="space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium mb-2">Server Address</label>
-                    <input 
-                      type="text" 
-                      id="manual-address" 
-                      class="iina-input w-full" 
-                      placeholder="192.168.1.100"
-                      value="localhost"
-                    >
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium mb-2">Port</label>
-                    <input 
-                      type="number" 
-                      id="manual-port" 
-                      class="iina-input w-full" 
-                      placeholder="10010"
-                      value="10010"
-                      min="1"
-                      max="65535"
-                    >
-                  </div>
-                  <button id="connect-manual" class="iina-button-primary w-full py-3">
-                    Connect Manually
-                  </button>
+            <!-- Manual Connection -->
+            <div class="iina-card">
+              <h2 class="text-lg sm:text-xl font-semibold mb-4 flex items-center gap-2">
+                <span>🔗</span> Manual Connection
+              </h2>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium mb-2">Server Address</label>
+                  <input 
+                    type="text" 
+                    id="manual-address" 
+                    class="iina-input w-full" 
+                    placeholder="192.168.1.100"
+                    value="localhost"
+                  >
                 </div>
-              </div>
-
-              <!-- Network Scan -->
-              <div class="iina-card">
-                <h2 class="text-lg sm:text-xl font-semibold mb-4 flex items-center gap-2">
-                  <span>🔍</span> Network Scan
-                </h2>
-                <div class="space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium mb-2">IP Range</label>
-                    <input 
-                      type="text" 
-                      id="scan-range" 
-                      class="iina-input w-full" 
-                      placeholder="192.168.1.1-254"
-                      value=""
-                    >
-                    <p class="text-xs text-iina-text-muted mt-1">Format: 192.168.x.1-254 (scans all IPs in that subnet)</p>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium mb-2">Port</label>
-                    <input 
-                      type="number" 
-                      id="scan-port" 
-                      class="iina-input w-full" 
-                      placeholder="10010"
-                      value="10010"
-                      min="1"
-                      max="65535"
-                    >
-                  </div>
-                  <button id="start-scan" class="iina-button w-full py-3" ${this.isScanning ? 'disabled' : ''}>
-                    ${this.isScanning ? 'Scanning...' : 'Start Network Scan'}
-                  </button>
+                <div>
+                  <label class="block text-sm font-medium mb-2">Port</label>
+                  <input 
+                    type="number" 
+                    id="manual-port" 
+                    class="iina-input w-full" 
+                    placeholder="10010"
+                    value="10010"
+                    min="1"
+                    max="65535"
+                  >
                 </div>
+                <button id="connect-manual" class="iina-button-primary w-full py-3">
+                  Connect Manually
+                </button>
               </div>
             </div>
           </div>
 
-          <!-- Servers List -->
+          <!-- Last Server -->
           <div class="iina-card">
             <div class="flex items-center justify-between mb-6">
-              <h2 class="text-lg sm:text-xl font-semibold">Discovered Servers</h2>
-              <button id="refresh-servers" class="iina-button px-3 py-2 text-sm sm:px-4 sm:text-base">
-                <span>🔄</span> <span class="hidden sm:inline">Refresh</span>
-              </button>
+              <h2 class="text-lg sm:text-xl font-semibold">Last Server</h2>
             </div>
             
-            <div id="servers-container">
-              ${this.getServersHTML()}
+            <div id="last-server-container">
+              ${this.getLastServerHTML()}
             </div>
-            
-            ${this.isScanning ? this.getScanningHTML() : ''}
           </div>
         </div>
       </div>
     `
   }
 
-  private getServersHTML(): string {
-    if (this.servers.length === 0) {
+  private getLastServerHTML(): string {
+    const lastServer = this.getLastServer()
+    
+    if (!lastServer) {
       return `
-        <div class="text-center py-12 text-iina-text-muted">
-          <div class="text-4xl mb-4">📡</div>
-          <p class="text-lg mb-2">No servers found</p>
-          <p class="text-sm">Try manual connection or start a network scan</p>
+        <div class="text-center py-8 text-iina-text-muted">
+          <div class="text-3xl mb-3">📡</div>
+          <p class="text-base mb-2">No previous server</p>
+          <p class="text-sm">Use manual connection to connect to a server</p>
         </div>
       `
     }
 
-    return this.servers.map(server => `
-      <div class="iina-card mb-4 cursor-pointer hover:scale-[1.02] transition-transform" 
-           data-server-address="${server.address}" 
-           data-server-port="${server.port}">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div class="flex-1 min-w-0">
-            <h3 class="text-base sm:text-lg font-semibold mb-1 truncate">${server.name}</h3>
-            <p class="text-iina-text-muted text-sm mb-2 truncate">
-              ${server.address}:${server.port}
+    return `
+      <div class="iina-card">
+        <div class="flex flex-col gap-4">
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold mb-1 truncate">${lastServer.name}</h3>
+            <p class="text-iina-text-muted text-sm mb-3 truncate">
+              ${lastServer.address}:${lastServer.port}
             </p>
-            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-              <span class="px-3 py-1 rounded-full text-xs font-medium ${this.getStatusClasses(server.status)} w-fit">
-                ${server.status.toUpperCase()}
+            <div class="flex items-center gap-2 mb-4">
+              <span class="px-3 py-1 rounded-full text-xs font-medium ${this.getStatusClasses(lastServer.status)} w-fit">
+                ${lastServer.status.toUpperCase()}
               </span>
-              ${server.lastSeen ? `<span class="text-xs text-iina-text-muted">Last seen: ${this.formatTime(server.lastSeen)}</span>` : ''}
+              ${lastServer.lastSeen ? `<span class="text-xs text-iina-text-muted">Last seen: ${this.formatTime(lastServer.lastSeen)}</span>` : ''}
             </div>
           </div>
-          <div class="flex items-center gap-2 sm:flex-shrink-0">
-            <button class="iina-button px-3 py-2 text-sm sm:px-4 sm:py-2 test-connection flex-1 sm:flex-initial" 
-                    data-address="${server.address}" 
-                    data-port="${server.port}">
-              Test
+          <div class="flex gap-2">
+            <button class="iina-button px-4 py-2 text-sm test-connection flex-1" 
+                    data-address="${lastServer.address}" 
+                    data-port="${lastServer.port}">
+              🔍 Test
             </button>
-            <button class="iina-button-primary px-4 py-2 text-sm sm:px-6 sm:py-2 connect-server flex-1 sm:flex-initial" 
-                    data-address="${server.address}" 
-                    data-port="${server.port}">
-              Connect
+            <button class="iina-button-primary px-4 py-2 text-sm connect-server flex-1" 
+                    data-address="${lastServer.address}" 
+                    data-port="${lastServer.port}">
+              🚀 Connect
+            </button>
+            <button class="iina-button px-3 py-2 text-sm delete-server" 
+                    data-address="${lastServer.address}" 
+                    data-port="${lastServer.port}">
+              🗑️
             </button>
           </div>
         </div>
       </div>
-    `).join('')
+    `
   }
 
-  private getScanningHTML(): string {
-    return `
-      <div class="text-center py-8">
-        <div class="inline-block w-8 h-8 border-2 border-iina-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p class="text-iina-text-muted">Scanning network for IINA servers...</p>
-      </div>
-    `
+  private getLastServer(): IINAServer | null {
+    if (this.servers.length === 0) return null
+    
+    // Return the most recently seen server
+    return this.servers.reduce((latest, current) => {
+      if (!latest.lastSeen) return current
+      if (!current.lastSeen) return latest
+      return current.lastSeen > latest.lastSeen ? current : latest
+    })
   }
 
   private getStatusClasses(status: string): string {
@@ -191,14 +155,6 @@ export class DiscoveryPage {
     // Manual connection
     const connectManualBtn = document.getElementById('connect-manual')
     connectManualBtn?.addEventListener('click', () => this.handleManualConnection())
-
-    // Network scan
-    const startScanBtn = document.getElementById('start-scan')
-    startScanBtn?.addEventListener('click', () => this.handleNetworkScan())
-
-    // Refresh servers
-    const refreshBtn = document.getElementById('refresh-servers')
-    refreshBtn?.addEventListener('click', () => this.refreshServers())
 
     // Server connections and network presets
     document.addEventListener('click', (e) => {
@@ -220,11 +176,11 @@ export class DiscoveryPage {
         }
       }
       
-      if (target.classList.contains('network-preset')) {
-        const range = target.dataset.range
-        const rangeInput = document.getElementById('scan-range') as HTMLInputElement
-        if (range && rangeInput) {
-          rangeInput.value = range
+      if (target.classList.contains('delete-server')) {
+        const address = target.dataset.address
+        const port = target.dataset.port
+        if (address && port) {
+          this.deleteServer(address, parseInt(port))
         }
       }
     })
@@ -247,110 +203,84 @@ export class DiscoveryPage {
       return
     }
     
+    // Add or update server in the list before connecting
+    this.addOrUpdateServer({
+      name: `IINA Server (${address})`,
+      address,
+      port,
+      status: 'checking',
+      lastSeen: new Date()
+    })
+    
     this.connectToServer(address, port)
   }
 
-  private async handleNetworkScan(): Promise<void> {
-    const rangeInput = document.getElementById('scan-range') as HTMLInputElement
-    const portInput = document.getElementById('scan-port') as HTMLInputElement
-    
-    const range = rangeInput?.value.trim() || '192.168.1.1-254'
-    const port = parseInt(portInput?.value || '10010')
-    
-    this.isScanning = true
+  private deleteServer(address: string, port: number): void {
+    this.servers = this.servers.filter(s => !(s.address === address && s.port === port))
+    this.saveServers()
     this.updateUI()
-    
-    try {
-      await this.scanNetwork(range, port)
-    } catch (error) {
-      this.showError('Network scan failed: ' + (error as Error).message)
-    } finally {
-      this.isScanning = false
-      this.updateUI()
-    }
+    this.showSuccess('Server removed successfully')
   }
 
-  private async scanNetwork(range: string, port: number): Promise<void> {
-    // Parse IP range (e.g., "192.168.1.1-254")
-    const [baseIP, endRange] = range.split('-')
-    if (!baseIP || !endRange) {
-      throw new Error('Invalid IP range format. Use format: 192.168.1.1-254')
+  private checkUrlParameters(): void {
+    const urlParams = new URLSearchParams(window.location.search)
+    const hashParams = new URLSearchParams(window.location.hash.split('?')[1])
+    
+    const ip = urlParams.get('ip') || hashParams.get('ip')
+    const port = urlParams.get('port') || hashParams.get('port')
+    
+    if (ip && port) {
+      const portNum = parseInt(port)
+      if (!isNaN(portNum) && portNum > 0 && portNum <= 65535) {
+        // Store the server info and navigate to remote
+        this.addOrUpdateServer({
+          name: `Server (${ip})`,
+          address: ip,
+          port: portNum,
+          status: 'checking',
+          lastSeen: new Date()
+        })
+        
+        // Connect directly
+        this.connectToServer(ip, portNum)
+        return
+      }
     }
-    
-    const ipParts = baseIP.split('.')
-    if (ipParts.length !== 4) {
-      throw new Error('Invalid IP address format')
-    }
-    
-    const baseOctets = ipParts.slice(0, 3).join('.')
-    const startOctet = parseInt(ipParts[3])
-    const endOctet = parseInt(endRange)
-    
-    console.log(`🔍 Starting network scan: ${baseOctets}.${startOctet}-${endOctet} on port ${port}`)
-    console.log(`📊 Will test ${endOctet - startOctet + 1} IP addresses`)
-    
-    const promises: Promise<void>[] = []
-    
-    for (let i = startOctet; i <= endOctet; i++) {
-      const ip = `${baseOctets}.${i}`
-      promises.push(this.testConnection(ip, port, false))
-    }
-    
-    const results = await Promise.allSettled(promises)
-    const successful = results.filter(r => r.status === 'fulfilled').length
-    const failed = results.filter(r => r.status === 'rejected').length
-    
-    console.log(`✅ Scan complete: ${successful} successful, ${failed} failed`)
   }
 
   private async testConnection(address: string, port: number, showResult = true): Promise<void> {
     try {
-      // For network scanning, we need to track all attempts
       if (!showResult) {
         console.log(`Testing connection to ${address}:${port}`)
       }
       
-      // For manual connections, update server status to checking
-      if (showResult) {
-        this.updateServerStatus(address, port, 'checking')
-      }
+      // Update server status to checking
+      this.updateServerStatus(address, port, 'checking')
       
-      // Attempt WebSocket connection with IINA verification
-      const serverInfo = await this.checkIINAServer(address, port)
+      // Use simple WebSocket connection test like remote page
+      const isConnected = await this.testWebSocketConnection(address, port)
       
-      if (serverInfo.isIINA) {
-        this.addOrUpdateServer({
-          name: serverInfo.name || `IINA Server (${address})`,
-          address,
-          port,
-          status: 'online',
-          lastSeen: new Date()
-        })
+      if (isConnected) {
+        this.updateServerStatus(address, port, 'online')
         
         if (showResult) {
-          this.showSuccess(`Successfully connected to IINA server at ${address}:${port}`)
+          this.showSuccess(`Server at ${address}:${port} is online`)
         } else {
-          console.log(`✅ Found IINA server at ${address}:${port} - ${serverInfo.name}`)
+          console.log(`✅ Server online at ${address}:${port}`)
         }
       } else {
+        this.updateServerStatus(address, port, 'offline')
+        
         if (showResult) {
-          this.updateServerStatus(address, port, 'offline')
-          if (serverInfo.connected) {
-            this.showError(`Server at ${address}:${port} is not an IINA server`)
-          } else {
-            this.showError(`Could not connect to ${address}:${port}`)
-          }
+          this.showError(`Could not connect to ${address}:${port}`)
         } else {
-          if (serverInfo.connected) {
-            console.log(`⚠️ Non-IINA server at ${address}:${port}`)
-          } else {
-            console.log(`❌ No server at ${address}:${port}`)
-          }
+          console.log(`❌ No server at ${address}:${port}`)
         }
       }
     } catch (error) {
+      this.updateServerStatus(address, port, 'offline')
+      
       if (showResult) {
-        this.updateServerStatus(address, port, 'offline')
         this.showError(`Connection test failed: ${(error as Error).message}`)
       } else {
         console.log(`❌ Connection failed to ${address}:${port}: ${(error as Error).message}`)
@@ -358,101 +288,40 @@ export class DiscoveryPage {
     }
   }
 
-  private async checkIINAServer(address: string, port: number): Promise<{isIINA: boolean, connected: boolean, name?: string}> {
+  private async testWebSocketConnection(address: string, port: number): Promise<boolean> {
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
         console.log(`⏰ Connection timeout for ${address}:${port}`)
-        resolve({isIINA: false, connected: false})
+        resolve(false)
       }, 3000) // 3 second timeout
       
       try {
         const ws = new WebSocket(`ws://${address}:${port}`)
-        let hasReceivedResponse = false
         
         ws.onopen = () => {
-          console.log(`🟢 WebSocket opened for ${address}:${port}`)
-          
-          // Send IINA identification request
-          const identifyMessage = {
-            type: 'identify',
-            timestamp: Date.now()
-          }
-          ws.send(JSON.stringify(identifyMessage))
-          
-          // Wait for response or timeout after 2 seconds
-          setTimeout(() => {
-            if (!hasReceivedResponse) {
-              console.log(`⚠️ No IINA response from ${address}:${port}`)
-              clearTimeout(timeout)
-              ws.close()
-              resolve({isIINA: false, connected: true})
-            }
-          }, 2000)
-        }
-        
-        ws.onmessage = (event) => {
-          hasReceivedResponse = true
-          
-          const handleMessage = (messageText: string) => {
-            try {
-              const response = JSON.parse(messageText)
-              if (response.type === 'identify_response' && response.application === 'IINA') {
-                console.log(`✅ Confirmed IINA server at ${address}:${port}`)
-                clearTimeout(timeout)
-                ws.close()
-                resolve({
-                  isIINA: true, 
-                  connected: true, 
-                  name: response.name || `IINA Server (${address})`
-                })
-              } else {
-                console.log(`⚠️ Non-IINA response from ${address}:${port}:`, response)
-                clearTimeout(timeout)
-                ws.close()
-                resolve({isIINA: false, connected: true})
-              }
-            } catch (error) {
-              console.log(`⚠️ Invalid JSON response from ${address}:${port}`, 'Raw text:', messageText)
-              clearTimeout(timeout)
-              ws.close()
-              resolve({isIINA: false, connected: true})
-            }
-          }
-          
-          // Handle different message types (Blob vs string)
-          if (event.data instanceof Blob) {
-            // Convert Blob to text
-            event.data.text().then(text => {
-              handleMessage(text)
-            }).catch(error => {
-              console.log(`⚠️ Failed to read blob data from ${address}:${port}:`, error)
-              clearTimeout(timeout)
-              ws.close()
-              resolve({isIINA: false, connected: true})
-            })
-          } else {
-            // Handle as string
-            handleMessage(event.data)
-          }
+          console.log(`🟢 WebSocket connected to ${address}:${port}`)
+          clearTimeout(timeout)
+          ws.close()
+          resolve(true)
         }
         
         ws.onerror = (error) => {
           console.log(`🔴 WebSocket error for ${address}:${port}:`, error)
           clearTimeout(timeout)
-          resolve({isIINA: false, connected: false})
+          resolve(false)
         }
         
         ws.onclose = (event) => {
-          if (!hasReceivedResponse && event.code !== 1000) {
+          if (event.code !== 1000) {
             console.log(`🟡 WebSocket closed for ${address}:${port}, code: ${event.code}`)
             clearTimeout(timeout)
-            resolve({isIINA: false, connected: false})
+            resolve(false)
           }
         }
       } catch (error) {
         console.log(`💥 WebSocket creation failed for ${address}:${port}:`, error)
         clearTimeout(timeout)
-        resolve({isIINA: false, connected: false})
+        resolve(false)
       }
     })
   }
@@ -495,16 +364,11 @@ export class DiscoveryPage {
       if (status === 'online') {
         server.lastSeen = new Date()
       }
+      this.saveServers() // Save immediately when status changes
       this.updateUI()
     }
   }
 
-  private refreshServers(): void {
-    // Test all existing servers
-    this.servers.forEach(server => {
-      this.testConnection(server.address, server.port, false)
-    })
-  }
 
   private loadSavedServers(): void {
     try {
@@ -512,9 +376,16 @@ export class DiscoveryPage {
       if (saved) {
         this.servers = JSON.parse(saved).map((server: any) => ({
           ...server,
-          lastSeen: server.lastSeen ? new Date(server.lastSeen) : undefined
+          lastSeen: server.lastSeen ? new Date(server.lastSeen) : undefined,
+          status: 'checking' as const // Reset status to checking when loading
         }))
         this.updateUI()
+        
+        // Test connection for the last server automatically
+        const lastServer = this.getLastServer()
+        if (lastServer) {
+          this.testConnection(lastServer.address, lastServer.port, false)
+        }
       }
     } catch (error) {
       console.error('Failed to load saved servers:', error)
@@ -532,21 +403,14 @@ export class DiscoveryPage {
   private updateUI(): void {
     console.log('🎨 updateUI called, servers count:', this.servers.length)
     
-    const serversContainer = document.getElementById('servers-container')
-    if (serversContainer) {
-      const newHTML = this.getServersHTML()
+    const lastServerContainer = document.getElementById('last-server-container')
+    if (lastServerContainer) {
+      const newHTML = this.getLastServerHTML()
       console.log('📄 Generated HTML length:', newHTML.length)
-      serversContainer.innerHTML = newHTML
-      console.log('✅ Updated servers container')
+      lastServerContainer.innerHTML = newHTML
+      console.log('✅ Updated last server container')
     } else {
-      console.log('❌ servers-container element not found')
-    }
-    
-    // Update scan button
-    const scanBtn = document.getElementById('start-scan') as HTMLButtonElement
-    if (scanBtn) {
-      scanBtn.disabled = this.isScanning
-      scanBtn.textContent = this.isScanning ? 'Scanning...' : 'Start Network Scan'
+      console.log('❌ last-server-container element not found')
     }
   }
 
@@ -591,37 +455,4 @@ export class DiscoveryPage {
     return `${diffDays}d ago`
   }
 
-  private detectNetworkRange(): void {
-    // Set a reasonable default and provide quick options
-    const rangeInput = document.getElementById('scan-range') as HTMLInputElement
-    if (rangeInput && !rangeInput.value) {
-      rangeInput.value = '192.168.1.1-254'
-    }
-    
-    // Add quick network preset buttons
-    this.addNetworkPresets()
-  }
-
-  private addNetworkPresets(): void {
-    const networkScanCard = document.querySelector('.iina-card:has(#scan-range)')
-    if (!networkScanCard) return
-    
-    const presetsHTML = `
-      <div class="mt-3 pt-3 border-t border-gray-600">
-        <p class="text-xs text-iina-text-muted mb-2">Quick presets:</p>
-        <div class="flex flex-wrap gap-2">
-          <button class="network-preset px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 rounded transition-colors" data-range="192.168.1.1-254">192.168.1.x</button>
-          <button class="network-preset px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 rounded transition-colors" data-range="192.168.0.1-254">192.168.0.x</button>
-          <button class="network-preset px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 rounded transition-colors" data-range="192.168.50.1-254">192.168.50.x</button>
-          <button class="network-preset px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 rounded transition-colors" data-range="10.0.0.1-254">10.0.0.x</button>
-          <button class="network-preset px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 rounded transition-colors" data-range="172.16.0.1-254">172.16.0.x</button>
-        </div>
-      </div>
-    `
-    
-    const scanRangeDiv = networkScanCard.querySelector('#scan-range')?.parentElement
-    if (scanRangeDiv) {
-      scanRangeDiv.insertAdjacentHTML('afterend', presetsHTML)
-    }
-  }
 } 
