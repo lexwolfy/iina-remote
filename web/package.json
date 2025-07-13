@@ -1,6 +1,6 @@
 {
   "name": "iina-web-remote-interface",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.3",
   "description": "Web interface for IINA Web Remote - discovery and control UI",
   "type": "module",
   "scripts": {
