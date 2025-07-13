@@ -190,9 +190,10 @@
             <p><strong>Network Access URL:</strong></p>
             <div class="connection-url" id="networkUrl">Getting network IP...</div>
             
-            <div class="qr-placeholder">
-                QR Code<br>
-                (Future Enhancement)
+            <div id="qrcode-container">
+                <div id="qrcode" class="qr-placeholder">
+                    Loading QR Code...
+                </div>
             </div>
         </div>
         
@@ -264,9 +265,11 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <script>
         let ws = null;
         let mediaStatus = {};
+        let connectionData = { ip: null, port: null };
         
         function log(message) {
             const logElement = document.getElementById('log');
@@ -321,6 +324,32 @@
             document.getElementById('networkUrl').textContent = 'http://[YOUR-MAC-IP]:8080 (Getting IP...)';
         }
         
+        async function generateQRCode() {
+            if (!connectionData.ip || !connectionData.port) {
+                return;
+            }
+            
+            const webUrl = `https://lexwolfy.github.io/iina-remote?ip=${connectionData.ip}&port=${connectionData.port}`;
+            
+            try {
+                const qrCodeDataURL = await QRCode.toDataURL(webUrl, {
+                    width: 150,
+                    margin: 2,
+                    color: {
+                        dark: '#333333',
+                        light: '#FFFFFF'
+                    }
+                });
+                
+                document.getElementById('qrcode').innerHTML = `<img src="${qrCodeDataURL}" alt="QR Code" style="max-width: 100%; height: auto;">`;
+                log('QR code generated successfully');
+            } catch (error) {
+                console.error('Error generating QR code:', error);
+                document.getElementById('qrcode').innerHTML = '<p>Error generating QR code</p>';
+                log('Failed to generate QR code: ' + error.message);
+            }
+        }
+        
         function connect() {
             log('Attempting to connect to WebSocket server...');
             updateStatus('Connecting...', 'connecting', '🔄');
@@ -367,10 +396,14 @@
                             if (message.data.networkIP) {
                                 const networkUrl = `http://${message.data.networkIP}:8080`;
                                 document.getElementById('networkUrl').textContent = networkUrl;
+                                connectionData.ip = message.data.networkIP;
                             }
                             if (message.data.port) {
                                 document.getElementById('serverPort').textContent = message.data.port;
+                                connectionData.port = message.data.port;
                             }
+                            // Generate QR code when we have connection info
+                            generateQRCode();
                         } else if (message.type === 'status-update') {
                             mediaStatus = message.data;
                             updateMediaInfo(mediaStatus);
@@ -407,6 +440,39 @@
             
             // Start WebSocket connection test
             connect();
+        }
+        
+        // Communication with IINA plugin when opened as standalone window
+        if (window.iina) {
+            window.iina.onMessage = function(type, data) {
+                log(`Received plugin message: ${type}`);
+                
+                if (type === 'connection-info') {
+                    connectionData.ip = data.ip;
+                    connectionData.port = data.port;
+                    
+                    // Update UI
+                    if (data.ip) {
+                        const networkUrl = `https://lexwolfy.github.io/iina-remote?ip=${data.ip}&port=${data.port}`;
+                        document.getElementById('networkUrl').textContent = networkUrl;
+                    }
+                    if (data.port) {
+                        document.getElementById('serverPort').textContent = data.port;
+                    }
+                    
+                    updateStatus('Connected', 'connected', '✅');
+                    generateQRCode();
+                } else if (type === 'status-update') {
+                    updateStatus(data.status, data.className, data.className === 'connected' ? '✅' : data.className === 'connecting' ? '🔄' : '❌');
+                }
+            };
+            
+            // Send init message to plugin
+            window.iina.postMessage('init', {});
+            log('Standalone window mode - sent init message to plugin');
+        } else {
+            // Fallback to WebSocket mode
+            log('WebSocket mode - starting connection attempts');
         }
         
         // Start when page loads

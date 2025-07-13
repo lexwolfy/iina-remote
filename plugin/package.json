@@ -2,20 +2,17 @@
   "name": "iina-web-remote",
   "version": "1.0.0",
   "description": "Control IINA playback from any device on your local network through a beautiful web interface",
-  "main": "src/index.js",
   "scripts": {
-    "clean": "rm -rf dist",
-    "dev": "tsc --watch --outDir dist/src",
-    "build": "npm run clean && tsc --outDir dist/src && npm run copy-assets",
-    "copy-assets": "mkdir -p dist && cp Info.json dist/ && cp help.html dist/ && echo '✅ Plugin built in dist/'",
+    "clean": "rm -rf dist *.iinaplgz *.iinaplugin",
+    "build": "npm run clean && npm run build-main && npm run copy-assets",
+    "build-main": "tsc --outDir dist/src",
+    "copy-assets": "cp Info.json dist/ && cp connection.html dist/ && echo '✅ Plugin built in dist/'",
     "package": "npm run build && rm -rf iina-web-remote.iinaplugin && cp -r dist iina-web-remote.iinaplugin && echo '📦 Plugin packaged as iina-web-remote.iinaplugin - Ready to install!'",
-    "package-zip": "npm run package && zip -r iina-web-remote.iinaplgz iina-web-remote.iinaplugin && echo '📦 Plugin packaged as .iinaplgz for distribution'",
-    "release": "npm run build && cd dist && zip -r ../iina-web-remote.iinaplgz . && echo '🚀 Release package created: iina-web-remote.iinaplgz'",
+    "release": "npm run package && cd iina-web-remote.iinaplugin && zip -r ../iina-web-remote.iinaplgz . && cd .. && echo '🚀 Release package created: iina-web-remote.iinaplgz'",
     "link": "ln -sf \"$(pwd)/dist\" ~/Library/Application\\ Support/com.colliderli.iina/plugins/iina-web-remote.iinaplugin-dev",
     "unlink": "rm -f ~/Library/Application\\ Support/com.colliderli.iina/plugins/iina-web-remote.iinaplugin-dev",
     "test": "echo 'TypeScript compilation test...' && tsc --noEmit"
   },
-
   "keywords": [
     "iina",
     "plugin",

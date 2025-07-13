@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IINA Web Remote - Connection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" 
+            onload="console.log('QRCode library loaded successfully')"
+            onerror="console.error('Failed to load QRCode library from CDN')"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'iina': {
+                            'bg': '#1a1a1a',
+                            'surface': '#2d2d2d',
+                            'surface-light': '#3a3a3a',
+                            'primary': '#007AFF',
+                            'secondary': '#5856D6',
+                            'text': '#ffffff',
+                            'text-muted': '#a0a0a0',
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                        'mono': ['SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @layer components {
+            .iina-control-bar {
+                @apply bg-iina-surface/80 backdrop-blur-md rounded-2xl p-4 border border-white/10;
+            }
+            
+            .iina-button {
+                @apply bg-iina-surface hover:bg-iina-surface-light active:bg-iina-surface-light/80 
+                       text-iina-text border border-white/10 rounded-xl 
+                       transition-all duration-200 ease-out
+                       flex items-center justify-center
+                       touch-manipulation select-none
+                       min-h-[44px] min-w-[44px];
+            }
+            
+            .iina-button-primary {
+                @apply bg-iina-primary hover:bg-blue-600 active:bg-blue-700
+                       text-white border-0 rounded-xl
+                       transition-all duration-200 ease-out
+                       flex items-center justify-center
+                       touch-manipulation select-none
+                       min-h-[44px] min-w-[44px];
+            }
+        }
+    </style>
+</head>
+<body class="bg-iina-bg text-iina-text font-sans">
+    <div class="min-h-screen p-6">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold mb-2">🎬 IINA Web Remote</h1>
+                <p class="text-iina-text-muted">Connect your devices to control IINA remotely</p>
+            </div>
+            
+            <!-- Status Card -->
+            <div class="iina-control-bar mb-6">
+                <div id="status" class="flex items-center justify-center p-4 rounded-xl transition-all duration-300">
+                    <div class="loading w-5 h-5 border-2 border-iina-text-muted border-t-iina-primary rounded-full animate-spin mr-3"></div>
+                    <span>Getting connection info...</span>
+                </div>
+            </div>
+            
+            <!-- QR Code Section -->
+            <div class="iina-control-bar mb-6">
+                <div class="text-center">
+                    <h2 class="text-xl font-semibold mb-4">📱 Quick Connect</h2>
+                    <div id="qrcode-container" class="bg-white rounded-2xl p-6 inline-block">
+                        <div id="qrcode" class="flex items-center justify-center min-h-[200px] min-w-[200px]">
+                            <div class="loading w-8 h-8 border-3 border-gray-300 border-t-iina-primary rounded-full animate-spin"></div>
+                        </div>
+                    </div>
+                    <p class="text-iina-text-muted mt-4 text-sm">Scan with your phone to connect instantly</p>
+                </div>
+            </div>
+            
+            <!-- Connection Info -->
+            <div class="iina-control-bar mb-6">
+                <h2 class="text-xl font-semibold mb-4">📡 Connection Details</h2>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-iina-text-muted">Status:</span>
+                        <span id="serverStatus" class="font-mono">Checking...</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-iina-text-muted">Port:</span>
+                        <span id="serverPort" class="font-mono">-</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-iina-text-muted">Local IP:</span>
+                        <span id="localIP" class="font-mono">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Web Interface URL -->
+            <div class="iina-control-bar mb-6">
+                <h2 class="text-xl font-semibold mb-4">🌐 Web Interface</h2>
+                <div class="bg-iina-surface-light rounded-xl p-4">
+                    <div id="connectionUrl" class="font-mono text-sm break-all text-iina-text-muted">
+                        Loading...
+                    </div>
+                </div>
+                <p class="text-iina-text-muted mt-2 text-sm">Use this URL on any device connected to the same network</p>
+            </div>
+            
+            <!-- Instructions -->
+            <div class="iina-control-bar">
+                <h2 class="text-xl font-semibold mb-4">🚀 How to Connect</h2>
+                <ol class="space-y-2 text-sm text-iina-text-muted">
+                    <li class="flex items-start">
+                        <span class="bg-iina-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs mr-3 mt-0.5 flex-shrink-0">1</span>
+                        <span>Make sure your device is on the same Wi-Fi network</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="bg-iina-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs mr-3 mt-0.5 flex-shrink-0">2</span>
+                        <span>Scan the QR code with your phone or visit the web interface URL</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="bg-iina-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs mr-3 mt-0.5 flex-shrink-0">3</span>
+                        <span>Start controlling IINA remotely!</span>
+                    </li>
+                </ol>
+            </div>
+            
+            <!-- Refresh Button -->
+            <div class="text-center mt-6">
+                <button id="refreshBtn" class="iina-button-primary px-6 py-3 rounded-xl font-medium" onclick="refreshConnection()">
+                    🔄 Refresh Connection
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let connectionData = { ip: null, port: null };
+        
+        function updateStatus(status, type = 'info') {
+            const statusElement = document.getElementById('status');
+            const colors = {
+                'connected': 'bg-green-500/20 text-green-300 border-green-500/20',
+                'connecting': 'bg-yellow-500/20 text-yellow-300 border-yellow-500/20',
+                'disconnected': 'bg-red-500/20 text-red-300 border-red-500/20',
+                'info': 'bg-iina-surface text-iina-text border-white/10'
+            };
+            
+            const icons = {
+                'connected': '✅',
+                'connecting': '<div class="loading w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin mr-3"></div>',
+                'disconnected': '❌',
+                'info': '📡'
+            };
+            
+            statusElement.className = `flex items-center justify-center p-4 rounded-xl transition-all duration-300 ${colors[type]}`;
+            statusElement.innerHTML = `${icons[type]} <span>${status}</span>`;
+            
+            document.getElementById('serverStatus').textContent = status;
+        }
+        
+        function updateConnectionInfo(data) {
+            if (data.port) {
+                document.getElementById('serverPort').textContent = data.port;
+                connectionData.port = data.port;
+            }
+            if (data.ip) {
+                document.getElementById('localIP').textContent = data.ip;
+                connectionData.ip = data.ip;
+            }
+            
+            generateQRCode();
+        }
+        
+        async function generateQRCode() {
+            console.log('generateQRCode called with:', connectionData);
+            
+            if (!connectionData.ip || !connectionData.port) {
+                console.log('Missing connection data - IP:', connectionData.ip, 'Port:', connectionData.port);
+                return;
+            }
+            
+            const webUrl = `https://lexwolfy.github.io/iina-remote?ip=${connectionData.ip}&port=${connectionData.port}`;
+            console.log('Generated URL for QR code:', webUrl);
+            document.getElementById('connectionUrl').textContent = webUrl;
+            
+            // Check if QRCode library is available
+            if (typeof QRCode === 'undefined') {
+                console.error('QRCode library not loaded! Showing fallback');
+                showQRCodeFallback(webUrl);
+                return;
+            }
+            
+            console.log('QRCode library available, generating QR code...');
+            
+            try {
+                const qrCodeDataURL = await QRCode.toDataURL(webUrl, {
+                    width: 200,
+                    margin: 2,
+                    color: {
+                        dark: '#1a1a1a',
+                        light: '#ffffff'
+                    }
+                });
+                
+                console.log('QR code generated successfully');
+                document.getElementById('qrcode').innerHTML = `<img src="${qrCodeDataURL}" alt="QR Code" class="rounded-lg">`;
+            } catch (error) {
+                console.error('Error generating QR code:', error);
+                showQRCodeFallback(webUrl);
+            }
+        }
+        
+        function showQRCodeFallback(url) {
+            // Show error message instead of fallback
+            document.getElementById('qrcode').innerHTML = `
+                <div class="text-center p-4 bg-red-100 rounded-lg border border-red-300">
+                    <div class="text-4xl mb-2 text-red-600">❌</div>
+                    <p class="text-sm text-red-700 mb-2">QR Code generation failed</p>
+                    <p class="text-xs text-red-600">Check browser console for details</p>
+                </div>
+            `;
+        }
+        
+        function refreshConnection() {
+            updateStatus('Refreshing...', 'connecting');
+            if (window.iina && window.iina.postMessage) {
+                console.log('=== WINDOW: Sending refresh request ===');
+                window.iina.postMessage('refresh', {});
+            }
+        }
+        
+        // Initialize communication (plugin-online-media pattern)
+        function init() {
+            console.log('=== WINDOW: Initializing IINA communication ===');
+            
+            // Request connection info immediately (plugin-online-media pattern)
+            console.log('=== WINDOW: Requesting connection info from plugin ===');
+            iina.postMessage("requestConnection", {});
+            
+            // Set up message handler for response
+            iina.onMessage("connectionUpdate", function (data) {
+                console.log('=== WINDOW: Received connectionUpdate ===');
+                console.log('Connection data:', data);
+                
+                if (data.ip && data.port) {
+                    console.log('=== WINDOW: Valid connection data received ===');
+                    updateConnectionInfo(data);
+                    updateStatus('Server Ready', 'connected');
+                } else {
+                    console.log('=== WINDOW: Invalid or pending connection data ===');
+                    updateStatus(data.status || 'Waiting for connection...', 'connecting');
+                }
+            });
+            
+            console.log('=== WINDOW: Message handlers set up ===');
+        }
+        
+        // Initialize when DOM is ready
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+</body>
+</html>
