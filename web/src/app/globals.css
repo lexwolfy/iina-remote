@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/* IINA Design System Component Classes */
+@layer components {
+  .iina-card {
+    @apply bg-gradient-to-br from-gray-800/40 to-gray-900/60 backdrop-blur-lg border border-white/10 rounded-2xl p-4 sm:p-6 shadow-xl;
+  }
+  
+  .iina-button {
+    @apply bg-gray-700/50 hover:bg-gray-600/60 active:bg-gray-600/70 border border-white/20 rounded-xl px-4 py-2 transition-all duration-200 text-white/90 hover:text-white backdrop-blur-sm flex items-center justify-center touch-manipulation select-none min-h-[44px] min-w-[44px];
+  }
+  
+  .iina-button-primary {
+    @apply bg-blue-600 hover:bg-blue-500 active:bg-blue-700 border-0 rounded-xl px-4 py-2 transition-all duration-200 text-white font-medium shadow-lg hover:shadow-blue-500/25 flex items-center justify-center touch-manipulation select-none min-h-[44px] min-w-[44px];
+  }
+  
+  .iina-input {
+    @apply bg-gray-800/50 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 min-h-[44px] text-base;
+  }
+  
+  .iina-slider {
+    @apply w-full bg-gray-700/50 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/50 touch-manipulation;
+  }
+  
+  .iina-slider::-webkit-slider-thumb {
+    @apply appearance-none bg-white rounded-full cursor-pointer shadow-lg border-2 border-blue-500 w-6 h-6 sm:w-5 sm:h-5;
+  }
+  
+  .iina-slider::-moz-range-thumb {
+    @apply bg-white rounded-full cursor-pointer shadow-lg border-2 border-blue-500 border-solid w-6 h-6 sm:w-5 sm:h-5;
+  }
+  
+  .iina-timestamp {
+    @apply text-white/70 font-mono text-sm;
+  }
+  
+  .iina-text-muted {
+    @apply text-white/60;
+  }
+  
+  .iina-surface {
+    @apply bg-gray-800/30;
+  }
+  
+  .iina-surface-light {
+    @apply bg-gray-700/30;
+  }
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-800/30 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-white/20 rounded-full hover:bg-white/30;
+}
+
+/* Global styles */
+body {
+  background: linear-gradient(135deg, #581c87 0%, #1e3a8a 50%, #312e81 100%);
+  color: white;
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Touch improvements */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, input, select, textarea {
+  touch-action: manipulation;
+}

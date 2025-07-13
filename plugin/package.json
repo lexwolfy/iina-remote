@@ -1,6 +1,6 @@
 {
   "name": "iina-web-remote",
-  "version": "1.0.0-beta.3",
+  "version": "1.0.0-beta.4",
   "description": "Control IINA playback from any device on your local network through a beautiful web interface",
   "scripts": {
     "clean": "rm -rf dist *.iinaplgz *.iinaplugin",

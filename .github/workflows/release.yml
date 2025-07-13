@@ -41,9 +41,9 @@ jobs:
       contents: read
       pages: write
       id-token: write
-    # environment:
-    #   name: github-pages
-    #   url: ${{ steps.deployment.outputs.page_url }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -67,11 +67,17 @@ jobs:
           
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          # Automatically inject basePath in your Next.js configuration file and disable
+          # server side image optimization (https://nextjs.org/docs/api-reference/next/image#unoptimized).
+          #
+          # You may remove this line if you want to manage the configuration yourself.
+          static_site_generator: next
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./web/dist
+          path: ./web/out
           
       - name: Deploy to GitHub Pages
         id: deployment
