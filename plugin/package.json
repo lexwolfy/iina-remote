@@ -4,9 +4,10 @@
   "description": "Control IINA playback from any device on your local network through a beautiful web interface",
   "scripts": {
     "clean": "rm -rf dist *.iinaplgz *.iinaplugin",
-    "build": "npm run clean && npm run build-main && npm run copy-assets",
+    "build": "npm run clean && npm run build-main && npm run build-html && npm run copy-assets",
     "build-main": "tsc --outDir dist/src",
-    "copy-assets": "cp Info.json dist/ && cp connection.html dist/ && echo '✅ Plugin built in dist/'",
+    "build-html": "parcel build connection.html --dist-dir dist --no-source-maps",
+    "copy-assets": "cp Info.json dist/ && echo '✅ Plugin built in dist/'",
     "package": "npm run build && rm -rf iina-web-remote.iinaplugin && cp -r dist iina-web-remote.iinaplugin && echo '📦 Plugin packaged as iina-web-remote.iinaplugin - Ready to install!'",
     "release": "npm run package && cd iina-web-remote.iinaplugin && zip -r ../iina-web-remote.iinaplgz . && cd .. && echo '🚀 Release package created: iina-web-remote.iinaplgz'",
     "link": "ln -sf \"$(pwd)/dist\" ~/Library/Application\\ Support/com.colliderli.iina/plugins/iina-web-remote.iinaplugin-dev",
@@ -23,9 +24,13 @@
   ],
   "author": "IINA Web Remote Team",
   "license": "MIT",
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  },
   "devDependencies": {
     "iina-plugin-definition": "^0.99.3",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "parcel": "^2.15.4"
   },
   "browserslist": [
     "safari >= 9"

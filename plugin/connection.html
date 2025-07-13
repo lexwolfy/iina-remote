@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IINA Web Remote - Connection</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" 
-            onload="console.log('QRCode library loaded successfully')"
-            onerror="console.error('Failed to load QRCode library from CDN')"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -145,7 +142,9 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import QRCode from './connection.js';
+        
         let connectionData = { ip: null, port: null };
         
         function updateStatus(status, type = 'info') {
@@ -195,13 +194,6 @@
             console.log('Generated URL for QR code:', webUrl);
             document.getElementById('connectionUrl').textContent = webUrl;
             
-            // Check if QRCode library is available
-            if (typeof QRCode === 'undefined') {
-                console.error('QRCode library not loaded! Showing fallback');
-                showQRCodeFallback(webUrl);
-                return;
-            }
-            
             console.log('QRCode library available, generating QR code...');
             
             try {
@@ -223,7 +215,6 @@
         }
         
         function showQRCodeFallback(url) {
-            // Show error message instead of fallback
             document.getElementById('qrcode').innerHTML = `
                 <div class="text-center p-4 bg-red-100 rounded-lg border border-red-300">
                     <div class="text-4xl mb-2 text-red-600">❌</div>
@@ -240,6 +231,9 @@
                 window.iina.postMessage('refresh', {});
             }
         }
+        
+        // Make refreshConnection globally available
+        window.refreshConnection = refreshConnection;
         
         // Initialize communication (plugin-online-media pattern)
         function init() {
